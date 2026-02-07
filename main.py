@@ -1,25 +1,29 @@
 import json
-import requests
+import httpx
 
-BASE_URL = "https://api.internal.temp-mail.io/api/v3"
+BASE = "https://api.internal.temp-mail.io/api/v3"
 
 def handler(request):
-    path = request["path"]
+
+    path = request.get("path", "")
     query = request.get("query", {})
 
-    # /semy → generate mail
+    # -------------------------
+    # /semy
+    # -------------------------
     if path == "/semy":
-        r = requests.post(f"{BASE_URL}/email/new")
-        data = r.json()
+        res = httpx.post(f"{BASE}/email/new")
+        data = res.json()
         data["developer"] = "DEVELOPER SEMY"
-
         return {
             "statusCode": 200,
             "headers": {"Content-Type": "application/json"},
             "body": json.dumps(data)
         }
 
-    # /inbox?email=
+    # -------------------------
+    # /inbox
+    # -------------------------
     if path == "/inbox":
         email = query.get("email")
         if not email:
@@ -27,14 +31,12 @@ def handler(request):
                 "statusCode": 400,
                 "headers": {"Content-Type": "application/json"},
                 "body": json.dumps({
-                    "success": False,
-                    "message": "❌ Please create an email first",
+                    "error": "❌ Please create an email first",
                     "developer": "DEVELOPER SEMY"
                 })
             }
-
-        r = requests.get(f"{BASE_URL}/email/{email}/messages")
-        msgs = r.json()
+        res = httpx.get(f"{BASE}/email/{email}/messages")
+        msgs = res.json()
 
         return {
             "statusCode": 200,
@@ -46,7 +48,11 @@ def handler(request):
             })
         }
 
+    # -------------------------
+    # DEFAULT
+    # -------------------------
     return {
         "statusCode": 404,
-        "body": "Route not found"
+        "headers": {"Content-Type": "text/plain"},
+        "body": "Route Not Found"
     }
